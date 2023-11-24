@@ -204,14 +204,15 @@ def validate_config(config):
     if mode not in ['post', 'like', 'listcollection', 'wix']:
         errors.append('[  配置  ]:mode 应为 "post"、"like"、"listcollection"或 "wix"之一')
 
-    # 验证 naming
-    naming = config.get('naming', '')
-    if not any(tag in naming for tag in ['{create}', '{desc}', '{id}']):
-        errors.append('[  配置  ]:naming 应至少包含 {create}、{desc} 或 {id} 中的一个。')
-    else:
-        stripped_naming = naming.replace('{create}', '').replace('{desc}', '').replace('{id}', '')
-        if any(ch for ch in stripped_naming if ch not in ('_', '-')):
-            errors.append('[  配置  ]:naming 只允许下划线_ 减号- 作为文件名间隔符')
+    # FIX：没有什么意义
+    # # 验证 naming
+    # naming = config.get('naming', '')
+    # if not any(tag in naming for tag in ['{create}', '{desc}', '{id}']):
+    #     errors.append('[  配置  ]:naming 应至少包含 {create}、{desc} 或 {id} 中的一个。')
+    # else:
+    #     stripped_naming = naming.replace('{create}', '').replace('{desc}', '').replace('{id}', '')
+    #     if any(ch for ch in stripped_naming if ch not in ('_', '-')):
+    #         errors.append('[  配置  ]:naming 只允许下划线_ 减号- 作为文件名间隔符')
 
     # 验证 interval
     interval = config.get('interval', '')

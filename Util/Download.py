@@ -58,6 +58,9 @@ class Download:
             url (str): 要下载的文件的 URL。
             path (str): 文件保存的本地路径.
         """
+        if not Util.os.path.exists(Util.os.path.dirname(path)):
+            # 创建文件夹
+            Util.os.makedirs(Util.os.path.dirname(path))
         try:
             async with self.semaphore:
                 connector = Util.aiohttp.TCPConnector(limit=int(self.config['max_connections']))
@@ -116,7 +119,7 @@ class Download:
             """
 
             # 使用给定的命名模板格式化文件名
-            return naming_template.format(create=aweme['create_time'], desc=aweme['desc'], id=aweme['aweme_id'])
+            return naming_template.format(create=aweme['create_time'], desc=aweme['desc'], id=aweme['aweme_id'], nickname=aweme['nickname'], month=aweme['create_time'][0:7])
 
         async def initiate_desc(file_type: str, desc_content: str, file_suffix: str, base_path: str, file_name: str) -> None:
             """
@@ -134,6 +137,9 @@ class Download:
 
             file_path = f'{file_name}{file_suffix}'
             full_path = Util.os.path.join(base_path, file_path)
+            if not Util.os.path.exists(Util.os.path.dirname(full_path)):
+                # 创建文件夹
+                Util.os.makedirs(Util.os.path.dirname(full_path))
             if Util.os.path.exists(full_path):
                 task_id = Util.progress.add_task(description=f"[  跳过  ]:",
                                                 filename=self.trim_filename(file_path, 50),
@@ -220,13 +226,14 @@ class Download:
 
             # 原声下载
             if self.config['music'].lower() == 'yes':
-                try:
-                    music_url = aweme['music_play_url']['url_list'][0]
-                    music_name = f"{await format_file_name(aweme, self.config['naming'])}_music"
-                    await initiate_download("音乐", music_url, ".mp3", desc_path, music_name)
-                except Exception:
-                    Util.progress.console.print("[  失败  ]：该原声不可用，无法下载。")
-                    Util.log.warning(f"[  失败  ]：该原声不可用，无法下载。{aweme} 异常：{Exception}")
+                if aweme['music_play_url']:
+                    try:
+                        music_url = aweme['music_play_url']['url_list'][0]
+                        music_name = f"{await format_file_name(aweme, self.config['naming'])}_music"
+                        await initiate_download("音乐", music_url, ".mp3", desc_path, music_name)
+                    except Exception as e:
+                        Util.progress.console.print("[  失败  ]：该原声不可用，无法下载。")
+                        Util.log.warning(f"[  失败  ]：该原声不可用，无法下载。{aweme} 异常：{e}")
 
             # 视频下载
             if aweme['aweme_type'] == 0:
@@ -234,9 +241,9 @@ class Download:
                     video_url = aweme['video_url_list'][0]
                     video_name = f"{await format_file_name(aweme, self.config['naming'])}_video"
                     await initiate_download("视频", video_url, ".mp4", desc_path, video_name)
-                except Exception:
+                except Exception as e:
                     Util.progress.console.print("[  失败  ]:该视频不可用，无法下载。")
-                    Util.log.warning(f"[  失败  ]:该视频不可用，无法下载。{aweme} 异常：{Exception}")
+                    Util.log.warning(f"[  失败  ]:该视频不可用，无法下载。{aweme} 异常：{e}")
 
                 # 封面下载
                 if self.config['cover'].lower() == 'yes':
@@ -244,9 +251,9 @@ class Download:
                         cover_url = aweme['dynamic_cover'][0]
                         cover_name = f"{await format_file_name(aweme, self.config['naming'])}_cover"
                         await initiate_download("封面", cover_url, ".gif", desc_path, cover_name)
-                    except Exception:
+                    except Exception as e:
                         Util.progress.console.print(f"[  失败  ]:该视频封面不可用，无法下载。")
-                        Util.log.warning(f"[  失败  ]:该视频封面不可用，无法下载。{aweme} 异常：{Exception}")
+                        Util.log.warning(f"[  失败  ]:该视频封面不可用，无法下载。{aweme} 异常：{e}")
 
             # 图集下载
             elif aweme['aweme_type'] == 68:
@@ -255,18 +262,18 @@ class Download:
                         image_url = image_dict.get('url_list', [None])[0]
                         image_name = f"{await format_file_name(aweme, self.config['naming'])}_image_{i + 1}"
                         await initiate_download("图集", image_url, ".jpg", desc_path, image_name)
-                except Exception:
+                except Exception as e:
                     Util.progress.console.print("[  失败  ]：该图片不可用，无法下载。")
-                    Util.log.warning(f"[  失败  ]：该图片不可用，无法下载。{aweme} 异常：{Exception}")
+                    Util.log.warning(f"[  失败  ]：该图片不可用，无法下载。{aweme} 异常：{e}")
 
             # 文案保存
             if self.config['desc'].lower() == 'yes':
                 try:
                     desc_name = f"{await format_file_name(aweme, self.config['naming'])}_desc"
                     await initiate_desc("文案", aweme['desc'], ".txt", desc_path, desc_name)
-                except Exception:
-                    Util.progress.console.print(f"[  失败  ]:保存文案失败。异常：{Exception}")
-                    Util.log.warning(f"[  失败  ]:保存文案失败。{aweme} 异常：{Exception}")
+                except Exception as e:
+                    Util.progress.console.print(f"[  失败  ]:保存文案失败。异常：{e}")
+                    Util.log.warning(f"[  失败  ]:保存文案失败。{aweme} 异常：{e}")
 
         # 等待本页所有的下载任务完成, 如果不等待的话就会还没等下完就去下载下一页了, 并发下载多了会被服务器断开连接
         await Util.asyncio.gather(*download_tasks)

@@ -467,13 +467,14 @@ class Profile:
             self.profile_URL = await self.get_diff_type_url(self.config, self.sec_user_id, count, 0)
 
             # 创建用户文件夹
-            self.path = self.create_user_folder(self.config, self.nickname)
+            self.path = Util.os.path.abspath(self.config.get('path', 'Download'))
+            # self.create_user_folder(self.config, self.nickname)
 
-            # 保存用户主页链接
-            with open(Util.os.path.join(self.path,
-                                        self.nickname + '.txt'),
-                                        'w') as f:
-                f.write(f"https://www.douyin.com/user/{self.sec_user_id}")
+            # # 保存用户主页链接
+            # with open(Util.os.path.join(self.path,
+            #                             self.nickname + '.txt'),
+            #                             'w') as f:
+            #     f.write(f"https://www.douyin.com/user/{self.sec_user_id}")
 
             Util.progress.console.print('[  提示  ]:批量获取所有视频中!\r')
             Util.log.info('[  提示  ]:批量获取所有视频中!')
