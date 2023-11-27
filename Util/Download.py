@@ -17,6 +17,7 @@ Change Log  :
 '''
 
 import Util
+import re
 
 XB = Util.XBogus()
 URLS = Util.Urls()
@@ -119,7 +120,7 @@ class Download:
             """
 
             # 使用给定的命名模板格式化文件名
-            return naming_template.format(create=aweme['create_time'], desc=aweme['desc'], id=aweme['aweme_id'], nickname=aweme['nickname'], month=aweme['create_time'][0:7])
+            return naming_template.format(create=re.sub(r'[\-\.\ ]', '', aweme['create_time']), desc=aweme['desc'], id=aweme['aweme_id'], nickname=aweme['nickname'], month=aweme['create_time'][0:7], year=aweme['create_time'][0:4])
 
         async def initiate_desc(file_type: str, desc_content: str, file_suffix: str, base_path: str, file_name: str) -> None:
             """
@@ -229,7 +230,7 @@ class Download:
                 if aweme['music_play_url']:
                     try:
                         music_url = aweme['music_play_url']['url_list'][0]
-                        music_name = f"{await format_file_name(aweme, self.config['naming'])}_music"
+                        music_name = f"{await format_file_name(aweme, self.config['naming'])}"
                         await initiate_download("音乐", music_url, ".mp3", desc_path, music_name)
                     except Exception as e:
                         Util.progress.console.print("[  失败  ]：该原声不可用，无法下载。")
@@ -239,7 +240,7 @@ class Download:
             if aweme['aweme_type'] == 0:
                 try:
                     video_url = aweme['video_url_list'][0]
-                    video_name = f"{await format_file_name(aweme, self.config['naming'])}_video"
+                    video_name = f"{await format_file_name(aweme, self.config['naming'])}"
                     await initiate_download("视频", video_url, ".mp4", desc_path, video_name)
                 except Exception as e:
                     Util.progress.console.print("[  失败  ]:该视频不可用，无法下载。")
@@ -249,7 +250,7 @@ class Download:
                 if self.config['cover'].lower() == 'yes':
                     try:
                         cover_url = aweme['dynamic_cover'][0]
-                        cover_name = f"{await format_file_name(aweme, self.config['naming'])}_cover"
+                        cover_name = f"{await format_file_name(aweme, self.config['naming'])}-poster"
                         await initiate_download("封面", cover_url, ".gif", desc_path, cover_name)
                     except Exception as e:
                         Util.progress.console.print(f"[  失败  ]:该视频封面不可用，无法下载。")
@@ -260,7 +261,7 @@ class Download:
                 try:
                     for i, image_dict in enumerate(aweme['images']):
                         image_url = image_dict.get('url_list', [None])[0]
-                        image_name = f"{await format_file_name(aweme, self.config['naming'])}_image_{i + 1}"
+                        image_name = f"{await format_file_name(aweme, self.config['naming'])}-{str(i + 1).rjust(3, '0')}"
                         await initiate_download("图集", image_url, ".jpg", desc_path, image_name)
                 except Exception as e:
                     Util.progress.console.print("[  失败  ]：该图片不可用，无法下载。")
