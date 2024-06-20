@@ -126,7 +126,7 @@ class Config:
         is_valid, message = validate_config(self.cf)
         if is_valid:
             # 是否自动升级
-            Util.Updata(self.cf['update'])
+            # Util.Updata(self.cf['update'])
             Util.progress.console.print(message)
             return self.cf
         else:
