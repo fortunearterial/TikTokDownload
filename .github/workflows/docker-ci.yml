@@ -49,7 +49,6 @@ jobs:
           tags: |
             ${{ github.repository_owner }}/tiktok-download:latest
             ${{ github.repository_owner }}/tiktok-download:${{ env.app_version }}
-          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha, scope=${{ github.workflow }}-docker
           cache-to: type=gha, scope=${{ github.workflow }}-docker
 
