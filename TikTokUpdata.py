@@ -150,4 +150,4 @@ class Updata:
 
 if __name__ == '__main__':
     # 根据需要，向 Updata 实例传入 "yes" 或 "no"
-    Updata('yes')
+    Updata('no')
