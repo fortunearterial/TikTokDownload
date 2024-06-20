@@ -415,7 +415,7 @@ class Profile:
 
         return aweme_data
 
-    async def process_aweme_data(self, aweme_data):
+    async def process_aweme_data(self, aweme_data, skiped):
         """
         处理 aweme_data，执行下载等操作。
 
@@ -429,9 +429,10 @@ class Profile:
             return
         # 下载作品
         with Util.progress:
-            await self.download.AwemeDownload(aweme_data)
+            skiped = await self.download.AwemeDownload(aweme_data, skiped)
         Util.progress.console.print(f'[  提示  ]:抓获{self.max_cursor}页数据成功! 该页共{len(aweme_data)}个作品。\r')
         Util.log.info(f'[  提示  ]:抓获{self.max_cursor}页数据成功! 该页共{len(aweme_data)}个作品。')
+        return skiped
 
     async def get_Profile(self, count: int = 20) -> None:
         """
@@ -485,16 +486,18 @@ class Profile:
             Util.progress.console.print(f'[  提示  ]:抓获首页数据成功! 该页共{len(aweme_data)}个作品。\r')
             Util.log.info(f'[  提示  ]:抓获首页数据成功! 该页共{len(aweme_data)}个作品。')
 
+            skiped = 0
             while True:
                 if Util.done_event.is_set():
                     Util.progress.console.print("[  提示  ]: 中断本次下载")
                     return
 
                 # 首先处理当前的 aweme_data
-                await self.process_aweme_data(aweme_data)
+                await self.process_aweme_data(aweme_data, skiped)
+                print(skiped)
 
                 # 检查是否有更多作品需要请求
-                if self.has_more == 0:
+                if self.has_more == 0 or skiped >= 20:
                     break
 
                 # 如果有更多作品，则更新URL并请求新的数据

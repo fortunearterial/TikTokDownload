@@ -91,7 +91,7 @@ class Download:
         except Exception as e:
             Util.progress.print(f"[  失败  ]：下载失败，未知错误。异常：{e}")
 
-    async def AwemeDownload(self, aweme_data):
+    async def AwemeDownload(self, aweme_data, skiped):
         """
         此函数用于从抖音作品数据列表（aweme_data）中异步下载音乐、视频和图集。
         它会根据aweme_type的类型来决定是下载视频还是图集，并且会根据配置文件来判断是否需要下载音乐。
@@ -122,7 +122,7 @@ class Download:
             # 使用给定的命名模板格式化文件名
             return naming_template.format(create=re.sub(r'[\-\.\ ]', '', aweme['create_time']), desc=aweme['desc'], id=aweme['aweme_id'], nickname=aweme['nickname'], month=aweme['create_time'][0:7], year=aweme['create_time'][0:4])
 
-        async def initiate_desc(file_type: str, desc_content: str, file_suffix: str, base_path: str, file_name: str) -> None:
+        async def initiate_desc(file_type: str, desc_content: str, file_suffix: str, base_path: str, file_name: str, downloaded: bool) -> None:
             """
             初始化文案保存。如果文案文件已经存在，则跳过保存。否则，直接将文案内容写入文件。
 
@@ -146,6 +146,7 @@ class Download:
                                                 filename=self.trim_filename(file_path, 50),
                                                 total=1, completed=1)
                 Util.progress.update(task_id, completed=1)
+                downloaded = downloaded or False
             else:
                 task_id = Util.progress.add_task(description=f"[  {file_type}  ]:",
                                                 filename=self.trim_filename(file_path, 50),
@@ -155,8 +156,9 @@ class Download:
                     desc_file.write(desc_content)
                 # 更新进度条以显示任务完成
                 Util.progress.update(task_id, completed=100)
+                downloaded = True
 
-        async def initiate_download(file_type: str, file_url: str, file_suffix: str, base_path: str, file_name: str) -> None:
+        async def initiate_download(file_type: str, file_url: str, file_suffix: str, base_path: str, file_name: str) -> bool:
             """
             初始化下载任务。如果文件已经存在，则跳过下载。否则，创建一个新的异步下载任务。
 
@@ -178,6 +180,7 @@ class Download:
                                                 filename=self.trim_filename(file_path, 50),
                                                 total=1, completed=1)
                 Util.progress.update(task_id, completed=1)
+                downloaded = downloaded or False
             else:
                 task_id = Util.progress.add_task(description=f"[  {file_type}  ]:",
                                                 filename=self.trim_filename(file_path, 50),
@@ -186,6 +189,7 @@ class Download:
                 download_tasks.append(download_task)
                 # 这将使事件循环继续进行，允许任务立即开始
                 await Util.asyncio.sleep(0)
+                downloaded = True
 
         # 用于存储作者本页所有的下载任务, 最后会等待本页所有作品下载完成才结束本函数
         download_tasks = []
@@ -199,6 +203,7 @@ class Download:
             start_date = Util.time.strptime(start_str + " 00.00.00", '%Y-%m-%d %H.%M.%S')
             end_date = Util.time.strptime(end_str + " 23.59.59", '%Y-%m-%d %H.%M.%S')
 
+        aweme_downloaded = False
         # 遍历aweme_data中的每一个aweme字典
         for aweme in aweme_data:
             aweme_time = Util.time.strptime(aweme['create_time'], '%Y-%m-%d %H.%M.%S')
@@ -231,7 +236,7 @@ class Download:
                     try:
                         music_url = aweme['music_play_url']['url_list'][0]
                         music_name = f"{await format_file_name(aweme, self.config['naming'])}"
-                        await initiate_download("音乐", music_url, ".mp3", desc_path, music_name)
+                        initiate_download("音乐", music_url, ".mp3", desc_path, music_name, aweme_downloaded)
                     except Exception as e:
                         Util.progress.console.print("[  失败  ]：该原声不可用，无法下载。")
                         Util.log.warning(f"[  失败  ]：该原声不可用，无法下载。{aweme} 异常：{e}")
@@ -241,7 +246,7 @@ class Download:
                 try:
                     video_url = aweme['video_url_list'][0]
                     video_name = f"{await format_file_name(aweme, self.config['naming'])}"
-                    await initiate_download("视频", video_url, ".mp4", desc_path, video_name)
+                    await initiate_download("视频", video_url, ".mp4", desc_path, video_name, aweme_downloaded)
                 except Exception as e:
                     Util.progress.console.print("[  失败  ]:该视频不可用，无法下载。")
                     Util.log.warning(f"[  失败  ]:该视频不可用，无法下载。{aweme} 异常：{e}")
@@ -251,7 +256,7 @@ class Download:
                     try:
                         cover_url = aweme['dynamic_cover'][0]
                         cover_name = f"{await format_file_name(aweme, self.config['naming'])}-poster"
-                        await initiate_download("封面", cover_url, ".gif", desc_path, cover_name)
+                        await initiate_download("封面", cover_url, ".gif", desc_path, cover_name, aweme_downloaded)
                     except Exception as e:
                         Util.progress.console.print(f"[  失败  ]:该视频封面不可用，无法下载。")
                         Util.log.warning(f"[  失败  ]:该视频封面不可用，无法下载。{aweme} 异常：{e}")
@@ -262,7 +267,7 @@ class Download:
                     for i, image_dict in enumerate(aweme['images']):
                         image_url = image_dict.get('url_list', [None])[0]
                         image_name = f"{await format_file_name(aweme, self.config['naming'])}-{str(i + 1).rjust(3, '0')}"
-                        await initiate_download("图集", image_url, ".jpg", desc_path, image_name)
+                        await initiate_download("图集", image_url, ".jpg", desc_path, image_name, aweme_downloaded)
                 except Exception as e:
                     Util.progress.console.print("[  失败  ]：该图片不可用，无法下载。")
                     Util.log.warning(f"[  失败  ]：该图片不可用，无法下载。{aweme} 异常：{e}")
@@ -271,10 +276,15 @@ class Download:
             if self.config['desc'].lower() == 'yes':
                 try:
                     desc_name = f"{await format_file_name(aweme, self.config['naming'])}_desc"
-                    await initiate_desc("文案", aweme['desc'], ".txt", desc_path, desc_name)
+                    await initiate_desc("文案", aweme['desc'], ".txt", desc_path, desc_name, aweme_downloaded)
                 except Exception as e:
                     Util.progress.console.print(f"[  失败  ]:保存文案失败。异常：{e}")
                     Util.log.warning(f"[  失败  ]:保存文案失败。{aweme} 异常：{e}")
+
+            if aweme_downloaded:
+                skiped=0
+            else:
+                skiped+=1
 
         # 等待本页所有的下载任务完成, 如果不等待的话就会还没等下完就去下载下一页了, 并发下载多了会被服务器断开连接
         await Util.asyncio.gather(*download_tasks)
