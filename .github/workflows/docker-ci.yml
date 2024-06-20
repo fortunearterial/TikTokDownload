@@ -37,16 +37,19 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - 
-        name: Build Image
+      - name: Build Image
         uses: docker/build-push-action@v5
         with:
           context: docker
           file: docker/Dockerfile
           platforms: |
             linux/amd64
-            linux/arm64
+            linux/arm64/v8
           push: true
           tags: |
             ${{ github.repository_owner }}/tiktok-download:latest
             ${{ github.repository_owner }}/tiktok-download:${{ env.app_version }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha, scope=${{ github.workflow }}-docker
+          cache-to: type=gha, scope=${{ github.workflow }}-docker
+
